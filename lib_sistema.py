@@ -715,3 +715,46 @@ def bov_codebook_gera(l_sift, nc, tipo):
 
     return (centers, labels)
 
+#%%
+def bov_histogramas_gera(labels, id_ds, indices, X, k, nomes_imagens, vis=False):
+
+    from matplotlib import pyplot as plt
+    import numpy as np
+
+    fv = np.vectorize(f)
+    
+    hists = []
+    i = 0
+
+    for j in range(0, len(indices)):
+        #ld = X[indices[j]].tolist()
+        n = id_ds[j]
+        sl = labels[i:i+n]
+
+        hist, bins = np.histogram(sl, bins=k, range=(0, k), normed=False,
+                                  weights=None, density=True)
+
+        if vis == True:
+            width = 0.7 * (bins[1] - bins[0])
+            center = (bins[:-1] + bins[1:]) / 2
+            plt.title("Histogram "+nomes_imagens[indices[j]])
+            plt.xlabel("Visual Word")
+            plt.ylabel("Frequency")
+            plt.bar(center, hist, align='center', width=width)
+            plt.show()
+            #print j
+
+        hists.append(hist)
+        #print hist
+        i = i + n
+        #j = j +1
+
+    return hists
+
+def bov_descritores_codifica(X, centers):
+    from scipy.cluster.vq import vq
+    
+    labels,_ = vq(X,centers)
+
+    return labels
+ 
