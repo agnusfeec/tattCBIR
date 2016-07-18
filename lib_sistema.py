@@ -188,6 +188,7 @@ def sift(nomes_imagens, imagens, sift_folder):
             gray = cv2.equalizeHist(aux)
             k = sqrt((240.0*480.0*0.5)/(gray.shape[0]*gray.shape[1]))
             res = cv2.resize(gray,None,fx=k, fy=k, interpolation = cv2.INTER_CUBIC)
+            cv2.imwrite("/media/sf_Projeto/dataset/tatt_dca//img_Reduzido/"+filename,res)
             sift = cv2.xfeatures2d.SIFT_create()
             (kps, descs) = sift.detectAndCompute(res, None)
 
@@ -464,7 +465,7 @@ def compute_cmc(arquivo, gt_imagens):
     return cmc
 
 #%%
-def plot_cmc(cmc):
+def plot_cmc(cmc, ni=200):
     
     import matplotlib.pyplot as plt
     import pylab as P
@@ -475,10 +476,10 @@ def plot_cmc(cmc):
     P.ylabel('%', fontsize=16)
     P.xlabel('Rank', fontsize=16)
     
-    P.xlim(0,400)
-    P.ylim(80,101)
-    P.xticks(np.arange(0, 400, 10.0))
-    P.yticks(np.arange(75, 101, 1.0))
+    P.xlim(0, ni)
+    P.ylim(0,101)
+    P.xticks(np.arange(0, ni, 10.0))
+    P.yticks(np.arange(0, 101, 5.0))
     
     xticklabels = P.getp(P.gca(), 'xticklabels')
     yticklabels = P.getp(P.gca(), 'yticklabels')
@@ -634,28 +635,34 @@ def le_descritores(sift_folder, subset, tipo=1):
 
     ch = 0
     ds = []
+    id_ds = []
+    
     for image in subset:
         
         fname = os.path.join(sift_folder, image[:-3]+'sift_ds')
         ds1 = (np.loadtxt(open(fname,"r"),delimiter=",")).astype(np.uint8) #,skiprows=1)
         
-        if tipo = 1:
+        if tipo == 1:
             if ch == 0:
                 ch = 1                
                 ds = []
                 ds.append(ds1)
+                id_ds.append(ds1.shape[0])
             else:
                 ds.append(ds1)                
+                id_ds.append(ds1.shape[0])
         else:
             if ch == 0:
                 ch = 1
                 ds = np.empty_like(ds1)
                 ds[:] = ds1
+                id_ds.append(ds1.shape[0])
             else:
                 print ds.shape, ds1.shape
                 ds = np.concatenate((ds, ds1), axis=0)
+                id_ds.append(ds1.shape[0])
             
-    return ds
+    return ds, id_ds
  
 #%%
 def bov_histogramas_grava(arquivo, hists, dt):
@@ -716,17 +723,17 @@ def bov_codebook_gera(l_sift, nc, tipo):
     return (centers, labels)
 
 #%%
-def bov_histogramas_gera(labels, id_ds, indices, X, k, nomes_imagens, vis=False):
+def bov_histogramas_gera(labels, id_ds, k, nomes_imagens, vis=False):
 
     from matplotlib import pyplot as plt
     import numpy as np
 
-    fv = np.vectorize(f)
+    #fv = np.vectorize(f)
     
     hists = []
     i = 0
 
-    for j in range(0, len(indices)):
+    for j in range(len(nomes_imagens)):
         #ld = X[indices[j]].tolist()
         n = id_ds[j]
         sl = labels[i:i+n]
@@ -737,7 +744,7 @@ def bov_histogramas_gera(labels, id_ds, indices, X, k, nomes_imagens, vis=False)
         if vis == True:
             width = 0.7 * (bins[1] - bins[0])
             center = (bins[:-1] + bins[1:]) / 2
-            plt.title("Histogram "+nomes_imagens[indices[j]])
+            plt.title("Histogram "+nomes_imagens[j])
             plt.xlabel("Visual Word")
             plt.ylabel("Frequency")
             plt.bar(center, hist, align='center', width=width)

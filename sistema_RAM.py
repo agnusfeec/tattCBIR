@@ -77,11 +77,11 @@ elif metodo == "FV_SIFT":
 
     t_start = time.time()
     LOGGER.info('le_descritores_train: starting')
-    ds = ls.le_descritores(sift_folder, train)
+    ds, id_ds = ls.le_descritores(sift_folder, train, tipo=1)
     LOGGER.info('le_descritores_train: ending(' + str(time.time()-t_start)+')')
 
 #%%
-    N = 15  # incluir posteriormente no arquivo de configuração
+    N = 5  # incluir posteriormente no arquivo de configuração
     t_start = time.time()
     LOGGER.info('fv_generate_gmm: starting')
     gmm = ls.fv_generate_gmm(ds, N, DT)
@@ -115,7 +115,7 @@ elif metodo == "FV_SIFT":
     #ds = ls.le_descritores(sift_folder, test)
     t_start = time.time()
     LOGGER.info('le_descritores_test: starting')
-    ds = ls.le_descritores(sift_folder, test)
+    ds, id_ds = ls.le_descritores(sift_folder, test)
     LOGGER.info('le_descritores_test: ending(' + str(time.time()-t_start)+')')
 
 #%%
@@ -162,6 +162,100 @@ elif metodo == "FV_SIFT":
                                  '|' + train[idx] + '|' + str(dist[idx]) +'\n')
                 k = k + 1
 
+#%%
+elif metodo == "BOV":
+    
+#%%
+    # Inicialmente esta considerando apenas um fold, deve ser verifcado o caso
+    # de ter mais de um fold
+
+    n_folds = len(folds) # por enquanto n_folds será 1 pois tem apenas um fold
+    for i in range(n_folds):
+        train = folds[i][0]
+        for j in range(n_folds):
+            if j != i:
+                train = train + folds[j][0]+folds[j][1]+folds[j][2]
+
+    t_start = time.time()
+    LOGGER.info('le_descritores_train: starting')
+    ds, id_ds = ls.le_descritores(sift_folder, train, 2)
+    LOGGER.info('le_descritores_train: ending(' + str(time.time()-t_start)+')')
+
+#%%
+    
+    k = 2000
+    t_start = time.time()
+    LOGGER.info('bov_codebook_gera: starting')
+    centers, labels = ls.bov_codebook_gera(ds, k, 2)
+    LOGGER.info('bov_codebook_gera: ending(' + str(time.time()-t_start)+')')
+
+#%%
+
+    t_start = time.time()
+    LOGGER.info('bov_histogramas_gera: starting')    
+    hists_train = ls.bov_histogramas_gera(labels, id_ds, k, train, vis=False)
+    LOGGER.info('bov_histogramas_gera: ending(' + str(time.time()-t_start)+')')
+
+#%%
+    # Inicialmente esta considerando apenas um fold, deve ser verifcado o caso
+    # de ter mais de um fold
+
+    n_folds = len(folds) # por enquanto n_folds será 1 pois tem apenas um fold
+    for i in range(n_folds):
+        test = folds[i][1]
+
+    #ds = ls.le_descritores(sift_folder, test)
+    t_start = time.time()
+    LOGGER.info('le_descritores_test: starting')
+    ds, id_ds = ls.le_descritores(sift_folder, test, 2)
+    LOGGER.info('le_descritores_test: ending(' + str(time.time()-t_start)+')')
+
+    t_start = time.time()
+    LOGGER.info('bov_descritores_codifica test: starting')
+    labels = ls.bov_descritores_codifica(ds, centers)
+    LOGGER.info('bov_descritores_codifica test: ending(' + str(time.time()-t_start)+')')        
+
+#%%
+
+    t_start = time.time()
+    LOGGER.info('bov_histogramas_gera test: starting')    
+    hists_test = ls.bov_histogramas_gera(labels, id_ds, k, test, vis=False)
+    LOGGER.info('bov_histogramas_gera test: ending(' + str(time.time()-t_start)+')')
+
+#%%
+    import scipy.spatial.distance as ssd
+
+    # não está considerando a questão de multiplos folds
+    # e também o uso de memória auxiliar no disco
+
+    ntrain = len(hists_train)
+
+    i = 0
+    arquivo = './clist_mem_'+str(i+1)+'.txt'
+    with open(arquivo, 'w') as clist_file:
+
+        ntest = len(hists_test)
+
+        for i_test in range(ntest):
+
+            file_test = test[i_test]
+            u = hists_test[i_test]
+            dist = np.zeros((ntrain))
+
+            for i_train in range(ntrain):
+
+                v = hists_train[i_train]
+                #dist[i_train] = ssd.cityblock(u, v)
+                dist[i_train] = ssd.euclidean(u, v)
+
+            #indice = np.argsort(dist)[::-1]
+            indice = np.argsort(dist)
+            
+            k = 1
+            for idx in indice:
+                clist_file.write(file_test+'|'+ str(k) +
+                                 '|' + train[idx] + '|' + str(dist[idx]) +'\n')
+                k = k + 1
 
 #%%
 i = 0
@@ -172,4 +266,4 @@ cmc = ls.compute_cmc(arquivo, gt_imagens)
 LOGGER.info('ground_truth: ending(' + str(time.time()-t_start)+')')
 
 #%%
-ls.plot_cmc(cmc)
+ls.plot_cmc(cmc, len(train))
