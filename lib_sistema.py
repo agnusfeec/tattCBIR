@@ -616,7 +616,7 @@ def fv_fisher_vector(samples, means, covs, w):
     
     return fv
 
-def le_descritores(sift_folder, subset):
+def le_descritores(sift_folder, subset, tipo=1):
     
     import os
     import numpy as np
@@ -638,15 +638,22 @@ def le_descritores(sift_folder, subset):
         
         fname = os.path.join(sift_folder, image[:-3]+'sift_ds')
         ds1 = (np.loadtxt(open(fname,"r"),delimiter=",")).astype(np.uint8) #,skiprows=1)
-        ds.append(ds1)
         
-#        if ch == 0:
-#            ch = 1
-#            ds = np.empty_like(ds1)
-#            ds[:] = ds1
-#        else:
-#            print ds.shape, ds1.shape
-#            ds = np.concatenate((ds, ds1), axis=0)
+        if tipo = 1:
+            if ch == 0:
+                ch = 1                
+                ds = []
+                ds.append(ds1)
+            else:
+                ds.append(ds1)                
+        else:
+            if ch == 0:
+                ch = 1
+                ds = np.empty_like(ds1)
+                ds[:] = ds1
+            else:
+                print ds.shape, ds1.shape
+                ds = np.concatenate((ds, ds1), axis=0)
             
     return ds
  
