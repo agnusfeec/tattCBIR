@@ -670,4 +670,48 @@ def bov_histogramas_grava(arquivo, hists, dt):
         i = i - 1
 
     resultFile.close()
-   
+
+#%%
+
+def bov_codebook_gera(l_sift, nc, tipo):
+
+    if tipo == 1:
+
+        # http://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html#sklearn.cluster.KMeans.fit
+        from sklearn.cluster import KMeans
+
+        est = KMeans(n_clusters=nc, init='k-means++', n_init=10, max_iter=100,
+                     tol=0.0001, precompute_distances='auto', verbose=0,
+                     random_state=None, copy_x=True, n_jobs=4)
+        est.fit(l_sift)
+        labels = est.labels_
+        centers = est.cluster_centers_
+
+    elif tipo == 2:
+
+        from sklearn.cluster import MiniBatchKMeans
+
+        est = MiniBatchKMeans(n_clusters=nc, init='k-means++', max_iter=100,
+                              batch_size=3*nc, verbose=0, compute_labels=True,
+                              random_state=None, tol=0.0, max_no_improvement=10,
+                              init_size=None, n_init=3, reassignment_ratio=0.01)
+        est.fit(l_sift)
+        labels = est.labels_
+        centers = est.cluster_centers_
+
+    else:
+
+        import random
+        from scipy.cluster.vq import vq
+        import numpy as np
+
+        list_of_random_items = random.sample(np.arange(l_sift.shape[0]), nc)
+        l_centroids = []
+        for i in list_of_random_items:
+            l_centroids.append(l_sift[i])
+
+        centers = np.asarray(l_centroids)
+        labels, _ = vq(l_sift, centers)
+
+    return (centers, labels)
+
